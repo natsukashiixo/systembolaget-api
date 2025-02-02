@@ -75,16 +75,20 @@ jobs:
       - name: Build for ${{ matrix.os }}-${{ matrix.arch }}
         run: |
           mkdir -p build
-          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o build/${{ matrix.os }}_${{ matrix.arch }} cmd/*.go
+          OUTPUT_NAME=systembolaget
+          if [ "${{ matrix.os }}" == "windows" ]; then OUTPUT_NAME+=".exe"; fi
+          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o build/$OUTPUT_NAME cmd/*.go
 
       - name: Package artifact
         run: |
+          OUTPUT_NAME=systembolaget
+          if [ "${{ matrix.os }}" == "windows" ]; then OUTPUT_NAME+=".exe"; fi
           if [ "${{ matrix.os }}" == "windows" ]; then
-            zip build/${{ matrix.os }}_${{ matrix.arch }}.zip build/${{ matrix.os }}_${{ matrix.arch }}
+            zip build/${{ matrix.os }}_${{ matrix.arch }}.zip build/$OUTPUT_NAME
           elif [ "${{ matrix.os }}" == "darwin" ]; then
-            zip build/${{ matrix.os }}_${{ matrix.arch }}.zip build/${{ matrix.os }}_${{ matrix.arch }}
+            zip build/${{ matrix.os }}_${{ matrix.arch }}.zip build/$OUTPUT_NAME
           else
-            tar -czf build/${{ matrix.os }}_${{ matrix.arch }}.tgz build/${{ matrix.os }}_${{ matrix.arch }}
+            tar -czf build/${{ matrix.os }}_${{ matrix.arch }}.tgz build/$OUTPUT_NAME
           fi
 
       - name: Upload Artifact
