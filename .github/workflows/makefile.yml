@@ -1,0 +1,94 @@
+name: Go CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+
+      - name: Build
+        run: go build -o build/systembolaget cmd/*.go
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+
+      - name: Format
+        run: go fmt ./...
+
+      - name: Lint
+        run: go run honnef.co/go/tools/cmd/staticcheck@2023.1.7 ./...
+
+      - name: Vet
+        run: go vet ./...
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+
+      - name: Run Tests
+        run: go test -v ./...
+
+  package:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [linux, darwin, windows]
+        arch: [amd64, arm64]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+
+      - name: Build for ${{ matrix.os }}-${{ matrix.arch }}
+        run: |
+          mkdir -p build
+          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o build/${{ matrix.os }}_${{ matrix.arch }} cmd/*.go
+
+      - name: Package artifact
+        run: |
+          if [ "${{ matrix.os }}" == "windows" ]; then
+            zip build/${{ matrix.os }}_${{ matrix.arch }}.zip build/${{ matrix.os }}_${{ matrix.arch }}
+          elif [ "${{ matrix.os }}" == "darwin" ]; then
+            zip build/${{ matrix.os }}_${{ matrix.arch }}.zip build/${{ matrix.os }}_${{ matrix.arch }}
+          else
+            tar -czf build/${{ matrix.os }}_${{ matrix.arch }}.tgz build/${{ matrix.os }}_${{ matrix.arch }}
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}-${{ matrix.arch }}
+          path: build/*
